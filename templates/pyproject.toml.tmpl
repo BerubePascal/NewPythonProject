@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "${name}"
+version = "0.1.0"
+description = ""
+${authors}readme = "README.md"
+requires-python = ">=${python_version}"
+# Engineering starter set; remove what the project does not use. After any
+# change, rerun: python -m pip install -e ".[dev]"
+dependencies = [
+    "numpy",         # arrays, linear algebra
+    "scipy",         # optimization, integration, signal, statistics
+    "pandas",        # tables, CSV/Excel data
+    "openpyxl",      # Excel .xlsx files for pandas
+    "matplotlib",    # plotting
+    "sympy",         # symbolic math
+    "scikit-learn",  # classic machine learning
+]
+
+[project.optional-dependencies]
+# Install with: python -m pip install -e ".[ml]"
+ml = [
+    "torch",         # deep learning (large download)
+]
+dev = [
+    "ipykernel",     # Jupyter notebooks and # %% cells in VS Code
+    "pytest",        # tests
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

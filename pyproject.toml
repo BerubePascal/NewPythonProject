@@ -1,0 +1,32 @@
+# Packages nicefigures (src/nicefigures/). scaffold_project.py installs it in
+# editable mode into each new project's venv. scaffold_project.py itself is a
+# script and is not part of the package.
+
+[build-system]
+requires = ["setuptools>=77.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nicefigures"
+version = "2.0.0"
+description = "Matplotlib helpers for publication-ready figures."
+authors = [{ name = "Pascal Bérubé", email = "Pascal_b@hotmail.com" }]
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "matplotlib>=3.7",
+    "numpy",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+nicefigures = ["*.mplstyle"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]  # so tests can import scaffold_project.py

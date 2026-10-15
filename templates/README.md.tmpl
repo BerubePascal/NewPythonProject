@@ -1,0 +1,43 @@
+# ${title}
+
+## Layout
+- `src/${package}/` – the project's code, importable anywhere as `import ${package}`
+- `main.py` – entry point
+- `pyproject.toml` – project metadata and dependencies
+- `.vscode/settings.json` – points VS Code at the virtual environment
+
+## Virtual environment
+The venv is in `~/.venvs/${venv_name}`, outside the project folder, so OneDrive
+does not sync it. VS Code picks it up through `.vscode/settings.json`: the
+bottom-right corner of the window should show `Python 3.XX (${venv_name})`.
+If it does not, use `Ctrl+Shift+P` → **Python: Select Interpreter**.
+
+The project is installed in the venv in editable mode, so changes to
+`src/${package}/` take effect without reinstalling.
+
+On another computer, run `scaffold_project.py` on this folder to recreate the venv.
+Existing files are kept.
+
+## Figures
+`nicefigures` is installed in the venv, linked to the copy next to
+`scaffold_project.py`:
+
+    import nicefigures as nf
+    nf.use_style()           # before creating figures
+    ...
+    nf.apply_style(fig)      # after plotting; layout="double" for 18 cm
+
+## Dependencies
+`pyproject.toml` starts with an engineering set (numpy, scipy, pandas,
+matplotlib, sympy, scikit-learn, ...). Edit `dependencies`, then run:
+
+    python -m pip install -e ".[dev]"
+
+PyTorch is in the optional `ml` group: `python -m pip install -e ".[dev,ml]"`.
+
+## GitHub
+In the **Source Control** tab, either:
+- **Publish to GitHub**: creates the repository with the GitHub account VS Code
+  is signed into (check it under the account icon, bottom left), or
+- create an empty repository on github.com, then **⋯ → Remote → Add Remote…**
+  and **Publish Branch**. The browser login decides which account pushes.

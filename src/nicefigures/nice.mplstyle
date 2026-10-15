@@ -1,0 +1,26 @@
+# Static styling for nicefigures: thin spines, ticks inside on all four
+# sides, light grid behind the data, 8.8 cm wide golden-ratio figures.
+#
+# Use for new figures:       nicefigures.use_style()
+# Apply to existing figures: nicefigures.apply_style(fig)
+# Both read the values from this file.
+
+figure.figsize: 3.465, 2.141  # 8.8 cm x 8.8 * 0.618 cm, in inches
+
+axes.linewidth: 0.5
+axes.grid: True
+axes.axisbelow: True
+
+grid.alpha: 0.8
+grid.linewidth: 0.3
+
+xtick.direction: in
+xtick.top: True
+xtick.major.width: 0.5
+xtick.minor.width: 0.5
+xtick.major.pad: 5
+
+ytick.direction: in
+ytick.right: True
+ytick.major.width: 0.5
+ytick.minor.width: 0.5
