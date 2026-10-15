@@ -1,3 +1,6 @@
+import json
+import os
+import sys
 import tomllib
 
 import pytest
@@ -57,3 +60,29 @@ def test_venv_owner_check(tmp_path):
     scaffold_project.check_venv_owner(venv, tmp_path / "a")  # same project: fine
     with pytest.raises(SystemExit):
         scaffold_project.check_venv_owner(venv, tmp_path / "b")
+
+
+def test_add_to_project_manager(tmp_path):
+    projects_file = tmp_path / "alefragnani.project-manager" / "projects.json"
+    projects_file.parent.mkdir()
+    existing = {"name": "Old", "rootPath": "c:\old", "paths": [], "tags": ["x"], "enabled": True, "profile": ""}
+    projects_file.write_text(json.dumps([existing]), encoding="utf-8")
+    project = tmp_path / "Étude 2"
+
+    scaffold_project.add_to_project_manager(project, projects_file)
+    scaffold_project.add_to_project_manager(project, projects_file)  # no duplicate
+
+    projects = json.loads(projects_file.read_text(encoding="utf-8"))
+    assert projects[0] == existing
+    assert len(projects) == 2
+    assert projects[1]["name"] == "Étude 2"
+    assert projects[1]["enabled"] is True
+    assert os.path.normcase(projects[1]["rootPath"]) == os.path.normcase(str(project))
+    if sys.platform == "win32":
+        assert projects[1]["rootPath"][0].islower()
+
+
+def test_add_to_project_manager_without_extension(tmp_path):
+    projects_file = tmp_path / "missing" / "projects.json"
+    scaffold_project.add_to_project_manager(tmp_path / "p", projects_file)
+    assert not projects_file.parent.exists()

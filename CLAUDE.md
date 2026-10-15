@@ -7,7 +7,8 @@ The user commits and pushes through VS Code's Source Control tab, not the CLI.
 - `scaffold_project.py` — scaffolds a new Python project: venv in
   `~/.venvs/<name>` (kept outside OneDrive on purpose), VS Code settings,
   pyproject.toml with an engineering starter set, src layout, editable
-  install, optional git init. Templates for the generated files are in
+  install, optional git init, entry in the VS Code Project Manager extension's
+  `projects.json` (tests must use a temp file, never the real one). Templates for the generated files are in
   `templates/*.tmpl` (string.Template, `${name}` placeholders). It installs
   `nicefigures` into each new venv in editable mode from this folder.
 - `src/nicefigures/` — installable package (`pyproject.toml` at the root):

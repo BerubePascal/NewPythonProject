@@ -26,6 +26,9 @@ Description:
     `git init` is run and the scaffold files are committed. Folders already
     inside a git repository are left as they are.
 
+    Finally, the project is saved in VS Code's Project Manager extension
+    (alefragnani.project-manager), named after its folder.
+
     File contents come from the templates/ folder next to this script.
     Rerunning on an existing project is safe: files are kept, the venv is
     reused and the project reinstalled.
@@ -33,6 +36,7 @@ Description:
 Usage:
     python scaffold_project.py [PATH] [--venv-name NAME] [--git | --no-git]
                                [--no-nicefigures] [--ml]
+                               [--no-project-manager]
 
     PATH            project folder, created if missing. Without it, a folder
                     picker opens and the git question is asked in a dialog.
@@ -43,6 +47,7 @@ Usage:
     --ml            also install PyTorch (the `ml` extra). PyTorch often lags
                     new Python releases; run this script with a supported
                     Python, e.g. `py -3.13 scaffold_project.py --ml`.
+    --no-project-manager  do not save the project in Project Manager.
 
 ------------------------------------------------------------------------------
 Author:     Pascal Berube
@@ -62,12 +67,14 @@ Update Log:
                ownership check, src/<package> layout, templates in files,
                argparse/pathlib, optional git init + first commit (asked),
                dependencies in pyproject only with an engineering starter
-               set and dev/ml extras, nicefigures installed in every venv
+               set and dev/ml extras, nicefigures installed in every venv,
+               project saved in VS Code's Project Manager extension
 ===============================================================================
 """
 
 import argparse
 import json
+import os
 import re
 import shutil
 import string
@@ -79,6 +86,21 @@ from pathlib import Path
 TOOLS_DIR = Path(__file__).resolve().parent  # also the nicefigures package root
 TEMPLATES_DIR = TOOLS_DIR / "templates"
 VENVS_DIR = Path.home() / ".venvs"
+
+
+def vscode_user_dir():
+    """VS Code's per-user settings folder on this platform."""
+    if sys.platform == "win32":
+        return Path(os.environ["APPDATA"]) / "Code" / "User"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "Code" / "User"
+    return Path.home() / ".config" / "Code" / "User"
+
+
+# Saved projects of the Project Manager extension (alefragnani.project-manager)
+PROJECT_MANAGER_FILE = (
+    vscode_user_dir() / "globalStorage" / "alefragnani.project-manager" / "projects.json"
+)
 
 # File inside each venv recording the project it belongs to, so two projects
 # with the same folder name do not silently share a venv.
@@ -121,7 +143,10 @@ def choose_directory():
     root = tk.Tk()
     root.withdraw()  # Hide the main tkinter window
     try:
-        return filedialog.askdirectory(title="Select directory for the new project")
+        return filedialog.askdirectory(
+            title="Select directory for the new project",
+            initialdir=Path.home() / "Documents",
+        )
     finally:
         root.destroy()
 
@@ -432,8 +457,66 @@ def git_first_commit(project_dir):
     run(["git", "commit", "-m", "Initial project scaffold"], cwd=project_dir)
 
 
+def add_to_project_manager(project_dir, projects_file=PROJECT_MANAGER_FILE):
+    """
+    Save the project in VS Code's Project Manager extension.
+
+    Appends an entry to the extension's projects.json, in the same format
+    the extension writes. Skipped if the extension is not installed, if the
+    project is already saved, or if the file cannot be read.
+
+    Args:
+        project_dir (Path): Root of the project.
+        projects_file (Path): The extension's projects.json.
+    """
+    if not projects_file.parent.exists():
+        print("Project Manager extension not found; project not saved there.")
+        return
+
+    projects = []
+    if projects_file.exists():
+        try:
+            projects = json.loads(projects_file.read_text(encoding="utf-8") or "[]")
+        except json.JSONDecodeError:
+            print(f"Warning: could not parse {projects_file}; project not saved there.")
+            return
+
+    root_path = str(project_dir)
+    if sys.platform == "win32" and root_path[1:2] == ":":
+        root_path = root_path[0].lower() + root_path[1:]  # "c:\..." like the extension
+
+    def same(path):
+        return os.path.normcase(os.path.normpath(path)) == os.path.normcase(root_path)
+
+    if any(same(p.get("rootPath", "")) for p in projects):
+        print("Project already saved in Project Manager.")
+        return
+
+    projects.append(
+        {
+            "name": project_dir.name,
+            "rootPath": root_path,
+            "paths": [],
+            "tags": [],
+            "enabled": True,
+            "profile": "",
+        }
+    )
+    # Write a temporary file, then swap it in, so a crash cannot leave
+    # the extension with a half-written list.
+    tmp_file = projects_file.with_suffix(".json.tmp")
+    tmp_file.write_text(json.dumps(projects, indent="\t", ensure_ascii=False), encoding="utf-8")
+    tmp_file.replace(projects_file)
+    print(f"Saved project in Project Manager as {project_dir.name!r}.")
+
+
 def setup_python_project(
-    project_dir, venv_name=None, use_git=True, with_nicefigures=True, with_ml=False
+    project_dir,
+    venv_name=None,
+    use_git=True,
+    with_nicefigures=True,
+    with_ml=False,
+    save_in_project_manager=True,
 ):
     """
     Run all setup steps for the project in project_dir.
@@ -448,6 +531,8 @@ def setup_python_project(
         use_git (bool): Initialize a repository and commit the scaffold.
         with_nicefigures (bool): Install nicefigures in the venv.
         with_ml (bool): Also install the `ml` extra (PyTorch).
+        save_in_project_manager (bool): Add the project to VS Code's
+            Project Manager extension.
     """
     dist_name = normalize_name(project_dir.name)
     package = package_name(dist_name)
@@ -483,6 +568,9 @@ def setup_python_project(
     if new_repo:
         git_first_commit(project_dir)
 
+    if save_in_project_manager:
+        add_to_project_manager(project_dir)
+
     print(f"\nProject setup in {project_dir} is complete.")
 
 
@@ -515,6 +603,11 @@ def main():
         action="store_true",
         help="also install the ml extra (PyTorch, large download)",
     )
+    parser.add_argument(
+        "--no-project-manager",
+        action="store_true",
+        help="do not save the project in VS Code's Project Manager extension",
+    )
     args = parser.parse_args()
 
     gui = not args.path
@@ -540,6 +633,7 @@ def main():
             use_git=use_git,
             with_nicefigures=not args.no_nicefigures,
             with_ml=args.ml,
+            save_in_project_manager=not args.no_project_manager,
         )
     except subprocess.CalledProcessError as error:
         sys.exit(
